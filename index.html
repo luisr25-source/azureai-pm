@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AzureAI PM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo"><i class="ti ti-brand-azure"></i><span>AzureAI PM</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-page="board" onclick="showPage('board',this)"><i class="ti ti-layout-kanban"></i><span>Mi Board</span></button>
+    <button class="nav-item" data-page="generate" onclick="showPage('generate',this)"><i class="ti ti-sparkles"></i><span>Generar Artefactos</span></button>
+    <button class="nav-item" data-page="create" onclick="showPage('create',this)"><i class="ti ti-plus"></i><span>Crear Work Item</span></button>
+    <button class="nav-item" data-page="config" onclick="showPage('config',this)"><i class="ti ti-settings"></i><span>Configuración</span></button>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="dot" id="conn-dot" style="background:#aaa"></span>
+    <span id="conn-label">Sin conectar</span>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="icon-btn sidebar-toggle-btn" onclick="document.getElementById('sidebar').classList.toggle('collapsed')"><i class="ti ti-menu-2"></i></button>
+    <span class="topbar-title" id="page-title">Mi Board</span>
+    <span id="topbar-chip" class="project-chip"></span>
+  </header>
+
+  <!-- BOARD -->
+  <section class="page active" id="page-board">
+    <div class="toolbar">
+      <select id="f-type" class="sel"><option value="all">Todos los tipos</option><option value="Epic">Epic</option><option value="Feature">Feature</option><option value="User Story">User Story</option><option value="Product Backlog Item">PBI</option><option value="Task">Task</option><option value="Bug">Bug</option><option value="Test Case">Test Case</option></select>
+      <select id="f-state" class="sel"><option value="all">Todos los estados</option><option value="New">New</option><option value="Active">Active</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option><option value="Closed">Closed</option></select>
+      <select id="f-assigned" class="sel"><option value="me">Asignados a mí</option><option value="all">Todos</option></select>
+      <button class="btn btn-primary" onclick="loadBoard()"><i class="ti ti-refresh"></i> Cargar</button>
+    </div>
+    <div id="board-container"><div class="empty-state"><i class="ti ti-layout-kanban"></i><p>Configurá tu conexión en <strong>Configuración</strong> y hacé clic en <strong>Cargar</strong></p></div></div>
+  </section>
+
+  <!-- GENERATE -->
+  <section class="page" id="page-generate">
+    <div class="gen-layout">
+      <div class="gen-left">
+
+        <div class="card">
+          <h3><i class="ti ti-file-text"></i> Documento o Requerimiento</h3>
+          <p class="hint">Pegá tu PRD, documento funcional, o describí el requerimiento en detalle.</p>
+          <textarea id="req-text" rows="8" placeholder="Ej: El sistema debe permitir a los usuarios registrarse con email y contraseña, iniciar sesión, recuperar contraseña por email, y autenticarse con Google OAuth..."></textarea>
+          <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+            <i class="ti ti-upload"></i> O subí un archivo .txt / .md
+            <input type="file" id="file-input" accept=".txt,.md" style="display:none" onchange="loadFile(event)">
+          </div>
+        </div>
+
+        <div class="card">
+          <h3><i class="ti ti-checklist"></i> Artefactos a generar</h3>
+          <div class="art-grid">
+            <label class="art-check"><input type="checkbox" value="epic" checked> <i class="ti ti-trophy"></i> Epic</label>
+            <label class="art-check"><input type="checkbox" value="feature" checked> <i class="ti ti-puzzle"></i> Features</label>
+            <label class="art-check"><input type="checkbox" value="user_stories" checked> <i class="ti ti-users"></i> User Stories</label>
+            <label class="art-check"><input type="checkbox" value="tasks" checked> <i class="ti ti-checklist"></i> Tasks</label>
+            <label class="art-check"><input type="checkbox" value="acceptance" checked> <i class="ti ti-check"></i> Criterios Aceptación</label>
+            <label class="art-check"><input type="checkbox" value="use_cases" checked> <i class="ti ti-arrows-exchange"></i> Casos de Uso</label>
+            <label class="art-check"><input type="checkbox" value="test_cases" checked> <i class="ti ti-test-pipe"></i> Casos de Prueba</label>
+            <label class="art-check"><input type="checkbox" value="solution_design" checked> <i class="ti ti-topology-star"></i> Diseño Solución</label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3><i class="ti ti-settings-2"></i> Opciones Azure DevOps</h3>
+          <div class="form-row">
+            <div class="field-wrap"><label class="field-label">Área (opcional)</label><input type="text" id="gen-area" placeholder="Proyecto\Equipo"></div>
+            <div class="field-wrap"><label class="field-label">Sprint (opcional)</label><input type="text" id="gen-iter" placeholder="Proyecto\Sprint 5"></div>
+          </div>
+          <label class="toggle-row">
+            <input type="checkbox" id="auto-create" checked>
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span>Crear automáticamente en Azure DevOps</span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-xl" id="btn-gen" onclick="generateArtifacts()">
+          <i class="ti ti-sparkles"></i> Analizar y Generar
+        </button>
+      </div>
+
+      <div class="gen-right" id="gen-results">
+        <div class="empty-state"><i class="ti ti-sparkles"></i><p>Los artefactos generados aparecerán aquí</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CREATE -->
+  <section class="page" id="page-create">
+    <div class="card" style="max-width:620px">
+      <h3><i class="ti ti-plus"></i> Nuevo Work Item</h3>
+      <div class="form-row">
+        <div class="field-wrap"><label class="field-label">Tipo *</label>
+          <select id="c-type"><option>Epic</option><option>Feature</option><option selected>User Story</option><option>Product Backlog Item</option><option>Task</option><option>Bug</option><option>Test Case</option></select>
+        </div>
+        <div class="field-wrap"><label class="field-label">Prioridad</label>
+          <select id="c-priority"><option value="1">1 - Crítica</option><option value="2" selected>2 - Alta</option><option value="3">3 - Media</option><option value="4">4 - Baja</option></select>
+        </div>
+      </div>
+      <div class="field-wrap"><label class="field-label">Título *</label><input type="text" id="c-title" placeholder="Título del work item"></div>
+      <div class="field-wrap"><label class="field-label">Descripción</label><textarea id="c-desc" rows="3" placeholder="Descripción detallada..."></textarea></div>
+      <div class="field-wrap"><label class="field-label">Criterios de Aceptación</label><textarea id="c-ac" rows="3" placeholder="Dado... Cuando... Entonces..."></textarea></div>
+      <div class="form-row">
+        <div class="field-wrap"><label class="field-label">Asignado a (email)</label><input type="text" id="c-assign" placeholder="usuario@org.com"></div>
+        <div class="field-wrap"><label class="field-label">Story Points</label><input type="number" id="c-points" placeholder="0" min="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="field-wrap"><label class="field-label">Área (opcional)</label><input type="text" id="c-area" placeholder="Proyecto\Equipo"></div>
+        <div class="field-wrap"><label class="field-label">Sprint (opcional)</label><input type="text" id="c-iter" placeholder="Proyecto\Sprint 5"></div>
+      </div>
+      <button class="btn btn-primary" id="btn-create" onclick="createSingle()"><i class="ti ti-plus"></i> Crear Work Item</button>
+      <div id="create-result" style="margin-top:1rem"></div>
+    </div>
+  </section>
+
+  <!-- CONFIG -->
+  <section class="page" id="page-config">
+    <div class="config-grid">
+      <div class="card">
+        <h3><i class="ti ti-brand-azure"></i> Azure DevOps</h3>
+        <div class="field-wrap">
+          <label class="field-label">Organización *</label>
+          <input type="text" id="cfg-org" placeholder="PNET">
+          <span class="field-hint">dev.azure.com/<strong>tu-org</strong>/...</span>
+        </div>
+        <div class="field-wrap">
+          <label class="field-label">Proyecto *</label>
+          <input type="text" id="cfg-proj" placeholder="Provincia Compras">
+        </div>
+        <div class="field-wrap">
+          <label class="field-label">Personal Access Token (PAT) *</label>
+          <div class="input-icon-wrap">
+            <input type="password" id="cfg-pat" placeholder="••••••••••••••••••••••••••••••••">
+            <button class="icon-btn" onclick="toggleVis('cfg-pat','pat-eye')"><i class="ti ti-eye" id="pat-eye"></i></button>
+          </div>
+          <span class="field-hint">Permisos requeridos: Work Items → Read &amp; Write</span>
+        </div>
+        <div class="info-box"><i class="ti ti-shield-lock"></i><div>Tu PAT se guarda solo en <strong>localStorage</strong> de este navegador. No pasa por ningún servidor.</div></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveConfig()"><i class="ti ti-check"></i> Guardar</button>
+          <button class="btn" onclick="testConn()"><i class="ti ti-wifi"></i> Probar conexión</button>
+        </div>
+        <div id="cfg-result"></div>
+      </div>
+
+      <div class="card">
+        <h3><i class="ti ti-brain"></i> Anthropic API Key</h3>
+        <p class="hint">Necesaria para generar artefactos con IA. Conseguila gratis en <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></p>
+        <div class="field-wrap" style="margin-top:12px">
+          <label class="field-label">API Key *</label>
+          <div class="input-icon-wrap">
+            <input type="password" id="cfg-apikey" placeholder="sk-ant-••••••••••••••••••••••">
+            <button class="icon-btn" onclick="toggleVis('cfg-apikey','apikey-eye')"><i class="ti ti-eye" id="apikey-eye"></i></button>
+          </div>
+        </div>
+        <div class="info-box"><i class="ti ti-shield-lock"></i><div>Tu API key se guarda solo en <strong>localStorage</strong> y se usa únicamente para las llamadas a Claude desde tu navegador.</div></div>
+        <button class="btn btn-primary" onclick="saveApiKey()"><i class="ti ti-check"></i> Guardar API Key</button>
+        <div id="apikey-result"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
